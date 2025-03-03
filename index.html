@@ -24,15 +24,15 @@
 <body>
     ЕБАТЬ ТЫ ЛОХ
     <audio id="audio">
-        <source src="https://drive.google.com/uc?export=download&id=1YBgd3u5Yb3B6kgNqyioDqnzi0dzTONdw" type="audio/mpeg">
+        <source src="https://voca.ro/1brWD8134tSc" type="audio/mpeg">
     </audio>
 
     <script>
         document.body.addEventListener('click', function() {
             const audio = document.getElementById('audio');
-            audio.volume = 1.0; // Устанавливаем громкость на максимум
-            audio.play();
-        }, { once: true });
+            audio.volume = 1.0; // Громкость на максимум
+            audio.play().catch(error => console.log('Ошибка воспроизведения:', error));
+        });
     </script>
 </body>
 </html>
