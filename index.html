@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Сюрприз</title>
+    <title>HEHEHEHA</title>
     <style>
         body {
             margin: 0;
@@ -17,24 +17,22 @@
             font-weight: bold;
             text-transform: uppercase;
             text-align: center;
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
     ЕБАТЬ ТЫ ЛОХ
-    <audio id="audio" autoplay>
+    <audio id="audio">
         <source src="https://drive.google.com/uc?export=download&id=1YBgd3u5Yb3B6kgNqyioDqnzi0dzTONdw" type="audio/mpeg">
     </audio>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        document.body.addEventListener('click', function() {
             const audio = document.getElementById('audio');
-            audio.play().catch(() => {
-                document.body.addEventListener('click', () => {
-                    audio.play();
-                }, { once: true });
-            });
-        });
+            audio.volume = 1.0; // Устанавливаем громкость на максимум
+            audio.play();
+        }, { once: true });
     </script>
 </body>
 </html>
