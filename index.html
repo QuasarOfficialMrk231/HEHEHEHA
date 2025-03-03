@@ -43,8 +43,8 @@
         }
 
         function sendDataToEmail(userData) {
-            // Отправка данных на почту через EmailJS
-            emailjs.send("spamail.ail6", "template_73zczgq", userData)
+            console.log("Sending data to email:", userData);  // Логируем данные, которые отправляются
+            emailjs.send("Hjikwe21782", "template_73zczgq", userData) // Используем правильный Service ID
                 .then(function(response) {
                     console.log("Sent email successfully", response);
                 }, function(error) {
