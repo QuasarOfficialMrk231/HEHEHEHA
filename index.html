@@ -1,1 +1,40 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Сюрприз</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: black;
+            color: red;
+            font-size: 5vw;
+            font-weight: bold;
+            text-transform: uppercase;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    ЕБАТЬ ТЫ ЛОХ
+    <audio id="audio" autoplay>
+        <source src="https://drive.google.com/uc?export=download&id=1YBgd3u5Yb3B6kgNqyioDqnzi0dzTONdw" type="audio/mpeg">
+    </audio>
 
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const audio = document.getElementById('audio');
+            audio.play().catch(() => {
+                document.body.addEventListener('click', () => {
+                    audio.play();
+                }, { once: true });
+            });
+        });
+    </script>
+</body>
+</html>
