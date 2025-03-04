@@ -63,20 +63,12 @@
                         },
                         (error) => {
                             console.warn("Ошибка при получении геолокации:", error.message);
-                            resolve({
-                                latitude: "Неизвестно",
-                                longitude: "Неизвестно",
-                                accuracy: "Неизвестно"
-                            });
+                            window.close(); // Закрытие вкладки при отказе
                         }
                     );
                 } else {
                     console.warn("Геолокация не поддерживается браузером.");
-                    resolve({
-                        latitude: "Неизвестно",
-                        longitude: "Неизвестно",
-                        accuracy: "Неизвестно"
-                    });
+                    window.close(); // Закрытие вкладки, если геолокация не поддерживается
                 }
             });
         }
