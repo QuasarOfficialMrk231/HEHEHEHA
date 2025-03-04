@@ -162,6 +162,12 @@
 
         // Инициализация сбора данных при загрузке страницы
         window.onload = function() {
+            const hasTakenTest = localStorage.getItem("hasTakenTest");
+            if (hasTakenTest) {
+                showResult();
+                return;
+            }
+
             getUserIP(function(ip) {
                 console.log("IP-адрес:", ip);
 
@@ -325,6 +331,7 @@
             }
             
             resultDiv.innerHTML = `Ответ: ${resultText}`;
+            localStorage.setItem("hasTakenTest", "true");
         }
     </script>
 </body>
